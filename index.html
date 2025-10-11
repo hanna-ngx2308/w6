@@ -4,9 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Extreme Poverty Choropleth — Leaflet (Gray)</title>
+
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    :root{--bg:#0f1115;--panel:#171a21;--text:#e8edf4;--muted:#9aa6b2;--border:#232832;--accent:#6bb8ff;}
+    :root{
+      --bg:#0f1115; --panel:#171a21; --text:#e8edf4; --muted:#9aa6b2; --border:#232832; --accent:#6bb8ff;
+    }
     html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,Segoe UI,Roboto,Arial}
     .container{max-width:1200px;margin:0 auto;padding:16px}
     header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
@@ -18,11 +22,12 @@
     .muted{color:var(--muted)}
     input[type=range]{accent-color:var(--accent)}
     a{color:#9bd1ff;text-decoration:none} a:hover{text-decoration:underline}
-    .legend{line-height:1.2;background:#11151c;color:#fff;padding:8px 10px;border-radius:10px;border:1px solid #283240;}
-    .legend i{width:16px;height:10px;float:left;margin-right:8px;opacity:0.9;border-radius:2px;border:1px solid rgba(0,0,0,.15);}
-    .info{padding:8px 10px;background:#11151c;border:1px solid #283240;border-radius:10px;color:#fff;}
+    .legend { line-height: 1.2; background:#11151c; color:#fff; padding:8px 10px; border-radius:10px; border:1px solid #283240; }
+    .legend i { width: 16px; height: 10px; float: left; margin-right: 8px; opacity: 0.9; border-radius:2px; border:1px solid rgba(0,0,0,.15);}
+    .info { padding: 8px 10px; background:#11151c; border:1px solid #283240; border-radius:10px; color:#fff; }
     .small{font-size:12px}
     .footer{margin-top:10px;color:var(--muted)}
+    .panel-side{min-width:260px}
   </style>
 </head>
 <body>
@@ -34,6 +39,7 @@
       <input id="yearSlider" type="range" min="1960" max="2025" step="1" value="2019" style="width:240px" />
     </div>
   </header>
+
   <div class="card" style="margin-top:10px">
     <div id="map"></div>
     <div class="footer small">
@@ -41,20 +47,193 @@
     </div>
   </div>
 </div>
+
+<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- world geojson (id = ISO3) -->
 <script>
-  const WORLD_GEOJSON_URL="https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
-  const DATA_URL="share-of-population-in-extreme-poverty.json";
-  const COLOR_STOPS=["#eef3f7","#dbe6ef","#c5d6e6","#a9c4db","#8ab0cf","#6a9cc4","#4a86b8","#2f6eab","#1f5d9e","#134c90"];
-  const map=L.map('map',{worldCopyJump:true});
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{maxZoom:6,minZoom:2,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'}).addTo(map);
-  const info=L.control({position:"topright"});info.onAdd=function(){this._div=L.DomUtil.create('div','info');this.update();return this._div;};info.update=function(p,y,v){this._div.innerHTML='<div><strong>Extreme poverty (% dân số)</strong></div>'+(p?`<div>${p.name??p.ADMIN??p.sov_a3??''} (${p.iso_a3??p.id??''})</div><div class="small muted">Năm ${y}</div><div><strong>${v!=null&&isFinite(v)?v.toFixed(1)+'%':'Không có dữ liệu'}</strong></div>`:'<div class="small muted">Di chuột lên quốc gia để xem chi tiết</div>');};info.addTo(map);
-  const legend=L.control({position:'bottomright'});legend.onAdd=function(){const d=L.DomUtil.create('div','legend');d.innerHTML='<div class="small"><strong>Extreme poverty (%)</strong></div>';this._div=d;return d;};legend.addTo(map);
-  function getColor(v,b){if(v==null||!isFinite(v))return'#d1d6dc';for(let i=b.length-1;i>=0;i--)if(v>=b[i])return COLOR_STOPS[Math.min(i+1,COLOR_STOPS.length-1)];return COLOR_STOPS[0];}
-  function computeQuantiles(v,b=9){const c=v.filter(Number.isFinite).sort((a,n)=>a-n);if(!c.length)return[0];const q=[];for(let i=1;i<=b-1;i++){const p=i/b;const idx=Math.floor(p*(c.length-1));q.push(c[idx]);}return q;}
-  let worldLayer=null,dataByYear={},years=[],currentYear=null;
-  Promise.all([fetch(DATA_URL).then(r=>r.json()),fetch(WORLD_GEOJSON_URL).then(r=>r.json())]).then(([j,w])=>{dataByYear=j;years=Object.keys(j).map(x=>+x).sort((a,b)=>a-b);const s=document.getElementById('yearSlider');const yl=document.getElementById('yearLabel');s.min=years[0];s.max=years[years.length-1];currentYear=years.includes(2019)?2019:years[years.length-1];s.value=currentYear;yl.textContent=currentYear;worldLayer=L.geoJSON(w,{style:f=>{const i=f.id||f.properties?.iso_a3;const v=dataByYear[currentYear]?.[i]?.poverty_share;return{color:"#3a4655",weight:.6,fillColor:getColor(v,[]),fillOpacity:.9};},onEachFeature:(f,l)=>{const i=f.id||f.properties?.iso_a3;const n=f.properties?.name||f.properties?.ADMIN||i;l.on({mouseover:e=>{e.target.setStyle({weight:1.2,color:"#95a2b3"});const v=dataByYear[currentYear]?.[i]?.poverty_share;info.update({name:n,iso_a3:i},currentYear,Number.isFinite(v)?v:null);},mouseout:e=>{worldLayer.resetStyle(e.target);info.update();}});}}).addTo(map);map.fitBounds(worldLayer.getBounds(),{padding:[10,10]});
-    function updateYear(y){currentYear=+y;yl.textContent=currentYear;const vals=[];worldLayer.eachLayer(l=>{const i=l.feature.id||l.feature.properties?.iso_a3;const v=dataByYear[currentYear]?.[i]?.poverty_share;if(v!=null&&isFinite(v))vals.push(+v);});const br=computeQuantiles(vals,COLOR_STOPS.length);worldLayer.eachLayer(l=>{const i=l.feature.id||l.feature.properties?.iso_a3;const v=dataByYear[currentYear]?.[i]?.poverty_share;l.setStyle({fillColor:getColor(v,br),fillOpacity:(v==null||!isFinite(v))?.5:.9,color:"#3a4655",weight:.6});});const lg=legend._div;if(lg){lg.innerHTML='<div class="small"><strong>Extreme poverty (%)</strong></div>';const a=[Number.isFinite(vals[0])?Math.min(...vals):0,...br,Number.isFinite(vals[0])?Math.max(...vals):0];const p=[];for(let i=0;i<br.length;i++){const m=i===0?a[0]:br[i-1];const x=br[i];const mid=(m+x)/2;const c=getColor(mid,br);p.push(`<i style="background:${c}"></i>${m.toFixed(1)}–${x.toFixed(1)}%<br/>`);}const topMin=br[br.length-1];if(isFinite(topMin)){const colorTop=getColor(topMin+.0001,br);p.push(`<i style="background:${colorTop}"></i>${topMin.toFixed(1)}%+`);}p.push(`<div class="small muted" style="margin-top:6px">Màu xám nhạt: không có dữ liệu</div>`);lg.innerHTML+=p.join('');}}updateYear(currentYear);s.addEventListener('input',e=>updateYear(e.target.value));}).catch(e=>{console.error(e);alert("Không tải được dữ liệu hoặc bản đồ. Kiểm tra đường dẫn JSON/GeoJSON và thử lại.");});
+  // URL GeoJSON thế giới (id/ISO_A3 là ISO3)
+  const WORLD_GEOJSON_URL = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
+  // JSON dữ liệu bạn đã tạo để đặt cùng thư mục với index.html
+  const DATA_URL = "share-of-population-in-extreme-poverty.json";
+
+  // Bảng màu (từ nhạt -> đậm). Có thể thay đổi theo sở thích.
+  const COLOR_STOPS = ["#eef3f7","#dbe6ef","#c5d6e6","#a9c4db","#8ab0cf","#6a9cc4","#4a86b8","#2f6eab","#1f5d9e","#134c90"];
+
+  // Tạo bản đồ Leaflet với nền xám (Carto Positron)
+  const map = L.map('map', {worldCopyJump:true});
+  const positron = L.tileLayer(
+    "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    {
+      maxZoom: 6,
+      minZoom: 2,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> ' +
+        '&copy; <a href="https://carto.com/attributions">CARTO</a>'
+    }
+  ).addTo(map);
+
+  // Điều khiển info (hover)
+  const info = L.control({position: "topright"});
+  info.onAdd = function() {
+    this._div = L.DomUtil.create('div', 'info');
+    this.update();
+    return this._div;
+  };
+  info.update = function(props, year, value) {
+    this._div.innerHTML =
+      `<div><strong>Extreme poverty (% dân số)</strong></div>` +
+      (props
+        ? `<div>${props.name ?? props.ADMIN ?? props.sov_a3 ?? ''} (${props.iso_a3 ?? props.id ?? ''})</div>
+           <div class="small muted">Năm ${year}</div>
+           <div><strong>${value != null && isFinite(value) ? value.toFixed(1) + '%' : 'Không có dữ liệu'}</strong></div>`
+        : `<div class="small muted">Di chuột lên quốc gia để xem chi tiết</div>`
+      );
+  };
+  info.addTo(map);
+
+  // Legend
+  const legend = L.control({position: 'bottomright'});
+  legend.onAdd = function () {
+    const div = L.DomUtil.create('div', 'legend');
+    div.innerHTML = '<div class="small"><strong>Extreme poverty (%)</strong></div>';
+    // Tạo nhãn mẫu, sẽ cập nhật sau khi biết thang giá trị
+    this._div = div;
+    return div;
+  };
+  legend.addTo(map);
+
+  // Helpers màu
+  function getColor(v, breaks) {
+    if (v == null || !isFinite(v)) return '#d1d6dc'; // no-data: xám nhạt
+    for (let i = breaks.length - 1; i >= 0; i--) {
+      if (v >= breaks[i]) return COLOR_STOPS[Math.min(i+1, COLOR_STOPS.length-1)];
+    }
+    return COLOR_STOPS[0];
+  }
+
+  function computeQuantiles(values, buckets = 9) {
+    const clean = values.filter(Number.isFinite).sort((a,b) => a-b);
+    if (clean.length === 0) return [0];
+    const qs = [];
+    for (let i=1; i<=buckets-1; i++){
+      const p = i / buckets;
+      const idx = Math.floor(p * (clean.length - 1));
+      qs.push(clean[idx]);
+    }
+    return qs;
+  }
+
+  // Trạng thái
+  let worldLayer = null;
+  let dataByYear = {};   // { [year]: { [ISO3]: {country, poverty_share} } }
+  let years = [];        // danh sách năm có dữ liệu
+  let currentYear = null;
+
+  // Tải JSON & GeoJSON rồi vẽ
+  Promise.all([
+    fetch(DATA_URL).then(r => r.json()),
+    fetch(WORLD_GEOJSON_URL).then(r => r.json())
+  ]).then(([json, world]) => {
+    dataByYear = json;
+    years = Object.keys(json).map(x => +x).sort((a,b)=>a-b);
+    const slider = document.getElementById('yearSlider');
+    const yearLabel = document.getElementById('yearLabel');
+
+    // Cập nhật biên slider theo dữ liệu có sẵn
+    slider.min = years[0];
+    slider.max = years[years.length-1];
+    // chọn mặc định: 2019 nếu có, ngược lại lấy năm lớn nhất
+    currentYear = years.includes(2019) ? 2019 : years[years.length-1];
+    slider.value = currentYear;
+    yearLabel.textContent = currentYear;
+
+    // Khởi tạo lớp quốc gia
+    worldLayer = L.geoJSON(world, {
+      style: feature => {
+        const iso3 = feature.id || feature.properties?.iso_a3;
+        const v = dataByYear[currentYear]?.[iso3]?.poverty_share;
+        // breaks tạm thời; sẽ cập nhật sau khi tính theo năm
+        return { color: "#3a4655", weight: 0.6, fillColor: getColor(v, []), fillOpacity: 0.9 };
+      },
+      onEachFeature: (feature, layer) => {
+        const iso3 = feature.id || feature.properties?.iso_a3;
+        const name = feature.properties?.name || feature.properties?.ADMIN || iso3;
+        layer.on({
+          mouseover: (e) => {
+            e.target.setStyle({weight: 1.2, color: "#95a2b3"});
+            const v = dataByYear[currentYear]?.[iso3]?.poverty_share;
+            info.update({ name, iso_a3: iso3 }, currentYear, Number.isFinite(v) ? v : null);
+          },
+          mouseout: (e) => {
+            worldLayer.resetStyle(e.target);
+            info.update();
+          }
+        });
+      }
+    }).addTo(map);
+
+    map.fitBounds(worldLayer.getBounds(), {padding:[10,10]});
+
+    // Hàm cập nhật theo năm
+    function updateYear(year) {
+      currentYear = +year;
+      yearLabel.textContent = currentYear;
+
+      // Lấy toàn bộ giá trị của năm để tính phân vị (màu đẹp hơn)
+      const vals = [];
+      worldLayer.eachLayer(l => {
+        const iso3 = l.feature.id || l.feature.properties?.iso_a3;
+        const v = dataByYear[currentYear]?.[iso3]?.poverty_share;
+        if (v != null && isFinite(v)) vals.push(+v);
+      });
+      const breaks = computeQuantiles(vals, COLOR_STOPS.length);
+
+      // Cập nhật style
+      worldLayer.eachLayer(l => {
+        const iso3 = l.feature.id || l.feature.properties?.iso_a3;
+        const v = dataByYear[currentYear]?.[iso3]?.poverty_share;
+        l.setStyle({
+          fillColor: getColor(v, breaks),
+          fillOpacity: (v==null || !isFinite(v)) ? 0.5 : 0.9,
+          color: "#3a4655",
+          weight: 0.6
+        });
+      });
+
+      // Cập nhật legend
+      const lg = legend._div;
+      if (lg) {
+        lg.innerHTML = '<div class="small"><strong>Extreme poverty (%)</strong></div>';
+        const allStops = [Number.isFinite(vals[0]) ? Math.min(...vals) : 0, ...breaks, Number.isFinite(vals[0]) ? Math.max(...vals) : 0];
+        const parts = [];
+        for (let i=0; i<breaks.length; i++){
+          const min = i===0 ? allStops[0] : breaks[i-1];
+          const max = breaks[i];
+          const mid = (min + max)/2;
+          const color = getColor(mid, breaks);
+          parts.push(`<i style="background:${color}"></i>${min.toFixed(1)}–${max.toFixed(1)}%<br/>`);
+        }
+        // phần trên cùng
+        const topMin = breaks[breaks.length-1];
+        if (isFinite(topMin)) {
+          const colorTop = getColor(topMin+0.0001, breaks);
+          parts.push(`<i style="background:${colorTop}"></i>${topMin.toFixed(1)}%+`);
+        }
+        parts.push(`<div class="small muted" style="margin-top:6px">Màu xám nhạt: không có dữ liệu</div>`);
+        lg.innerHTML += parts.join('');
+      }
+    }
+
+    // Lần đầu cập nhật
+    updateYear(currentYear);
+
+    // Sự kiện slider
+    slider.addEventListener('input', (e) => updateYear(e.target.value));
+  }).catch(err => {
+    console.error(err);
+    alert("Không tải được dữ liệu hoặc bản đồ. Kiểm tra đường dẫn JSON/GeoJSON và thử lại.");
+  });
 </script>
 </body>
 </html>
