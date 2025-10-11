@@ -1,0 +1,42 @@
+{
+  "2020": {
+    "NaN": {
+      "country": "Ukraine",
+      "poverty_share": 0.033767752
+    }
+  },
+  "2023": {
+    "NaN": {
+      "country": "Uzbekistan",
+      "poverty_share": 4.0662766
+    }
+  },
+  "2022": {
+    "NaN": {
+      "country": "Zambia",
+      "poverty_share": 71.65615
+    }
+  },
+  "2021": {
+    "NaN": {
+      "country": "United Kingdom",
+      "poverty_share": 0.49831137
+    }
+  },
+  "2024": {
+    "CRI": {
+      "country": "Costa Rica",
+      "poverty_share": 1.2837076
+    },
+    "IDN": {
+      "country": "Indonesia",
+      "poverty_share": 5.438113
+    }
+  },
+  "2019": {
+    "NaN": {
+      "country": "Zimbabwe",
+      "poverty_share": 49.219894
+    }
+  }
+}
