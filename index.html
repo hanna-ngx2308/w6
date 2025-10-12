@@ -1,89 +1,604 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>WHO Air Quality 2024 - Global Map</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <style>
-    body { margin: 0; font-family: Arial, sans-serif; background: #f3f3f3; }
-    #map { height: 100vh; width: 100%; }
-    .filter-box {
-      position: absolute;
-      top: 10px; left: 10px;
-      background: rgba(255,255,255,0.9);
-      padding: 8px 12px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-      z-index: 1000;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tỷ lệ dân số tiếp cận điện trên thế giới</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/topojson.v3.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+        }
+        
+        .map-container {
+            position: relative;
+            margin: 20px 0;
+        }
+        
+        .country {
+            stroke: #fff;
+            stroke-width: 0.5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .country:hover {
+            stroke: #333;
+            stroke-width: 1.5px;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            pointer-events: none;
+            font-size: 14px;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .year-slider-container {
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .year-slider {
+            width: 80%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+            margin: 0 20px;
+        }
+        
+        .year-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        .year-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        .year-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+        
+        .legend-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        
+        .legend {
+            display: flex;
+            align-items: center;
+            margin: 0 20px;
+        }
+        
+        .legend-gradient {
+            width: 300px;
+            height: 20px;
+            background: linear-gradient(to right, 
+                #1e3a8a 0%,      /* Xanh đậm */
+                #3b82f6 25%,     /* Lam */
+                #60a5fa 50%,     /* Lam nhạt */
+                #86efac 75%,     /* Xanh lá nhạt */
+                #f0fdf4 100%    /* Xanh lá sáng/trắng */
+            );
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        
+        .legend-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .legend-text {
+            margin-left: 15px;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .loading {
+            text-align: center;
+            font-size: 18px;
+            color: #666;
+            margin: 50px 0;
+        }
+        
+        .no-data {
+            fill: #e5e5e5;
+            stroke: #ccc;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .play-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        
+        .play-button:hover {
+            background: #45a049;
+        }
+        
+        .play-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 <body>
-  <div class="filter-box">
-    <label for="yearSelect">Filter by Year: </label>
-    <select id="yearSelect">
-      <option value="all">All Years</option>
-    </select>
-  </div>
-  <div id="map"></div>
+    <div class="container">
+        <h1>Tỷ lệ dân số tiếp cận điện trên thế giới</h1>
+        
+        <div class="loading" id="loading">
+            Đang tải dữ liệu...
+        </div>
+        
+        <div class="map-container" id="map-container" style="display: none;">
+            <svg id="map"></svg>
+            <div class="tooltip" id="tooltip"></div>
+        </div>
+        
+        <div class="controls">
+            <button class="play-button" id="playButton" onclick="toggleAnimation()">▶ Phát</button>
+            <div class="year-slider-container">
+                <div class="year-display" id="yearDisplay">1990</div>
+                <input type="range" class="year-slider" id="yearSlider" min="1990" max="2023" value="1990">
+            </div>
+        </div>
+        
+        <div class="legend-container">
+            <div class="legend">
+                <div class="legend-gradient"></div>
+                <div class="legend-text">Tỷ lệ tiếp cận điện (%)</div>
+            </div>
+            <div class="legend-labels">
+                <span>0%</span>
+                <span>25%</span>
+                <span>50%</span>
+                <span>75%</span>
+                <span>100%</span>
+            </div>
+        </div>
+    </div>
 
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script>
-    // Khởi tạo bản đồ nền xám (CartoDB Positron)
-    const map = L.map('map').setView([20, 0], 2);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 18,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> & CartoDB'
-    }).addTo(map);
-
-    let allMarkers = [];
-    let data = [];
-
-    // Tải dữ liệu JSON
-    fetch('who_air_quality_2024.json')
-      .then(response => response.json())
-      .then(jsonData => {
-        data = jsonData;
-        const years = [...new Set(data.map(item => Math.floor(item.year)))].sort((a,b)=>a-b);
-        const yearSelect = document.getElementById('yearSelect');
-        years.forEach(year => {
-          const opt = document.createElement('option');
-          opt.value = year;
-          opt.textContent = year;
-          yearSelect.appendChild(opt);
+    <script>
+        let worldData = null;
+        let electricityData = {};
+        let currentYear = 1990;
+        let isPlaying = false;
+        let animationInterval = null;
+        
+        // Color scale function
+        const colorScale = d3.scaleLinear()
+            .domain([0, 100])
+            .range(["#1e3a8a", "#3b82f6", "#60a5fa", "#86efac", "#f0fdf4"]);
+        
+        // Load world map data
+        async function loadWorldMap() {
+            try {
+                const world = await d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson");
+                return world;
+            } catch (error) {
+                console.error("Error loading world map:", error);
+                // Fallback to a simpler approach
+                return null;
+            }
+        }
+        
+        // Load electricity data
+        async function loadElectricityData() {
+            try {
+                const response = await fetch('/Users/honghanhnguyen/Downloads/share-of-the-population-with-access-to-electricity/share-of-the-population-with-access-to-electricity.csv');
+                const csvText = await response.text();
+                const data = d3.csvParse(csvText);
+                
+                // Process data into a more usable format
+                const processedData = {};
+                data.forEach(d => {
+                    const country = d.Entity;
+                    const year = parseInt(d.Year);
+                    const value = parseFloat(d['Access to electricity (% of population)']);
+                    
+                    if (!processedData[country]) {
+                        processedData[country] = {};
+                    }
+                    processedData[country][year] = value;
+                });
+                
+                return processedData;
+            } catch (error) {
+                console.error("Error loading electricity data:", error);
+                return {};
+            }
+        }
+        
+        // Country name mapping (to match different naming conventions)
+        const countryNameMap = {
+            'United States': 'United States of America',
+            'United Kingdom': 'United Kingdom',
+            'South Korea': 'South Korea',
+            'North Korea': 'North Korea',
+            'Czech Republic': 'Czech Republic',
+            'Slovakia': 'Slovakia',
+            'Russia': 'Russian Federation',
+            'Iran': 'Iran',
+            'Venezuela': 'Venezuela',
+            'Bolivia': 'Bolivia',
+            'Tanzania': 'Tanzania',
+            'Congo': 'Republic of the Congo',
+            'Democratic Republic of Congo': 'Democratic Republic of the Congo',
+            'Central African Republic': 'Central African Republic',
+            'South Africa': 'South Africa',
+            'Ivory Coast': 'Côte d\'Ivoire',
+            'Cote d\'Ivoire': 'Côte d\'Ivoire',
+            'Burkina Faso': 'Burkina Faso',
+            'Sierra Leone': 'Sierra Leone',
+            'Guinea-Bissau': 'Guinea-Bissau',
+            'Cape Verde': 'Cape Verde',
+            'Sao Tome and Principe': 'São Tomé and Príncipe',
+            'Equatorial Guinea': 'Equatorial Guinea',
+            'Gabon': 'Gabon',
+            'Cameroon': 'Cameroon',
+            'Chad': 'Chad',
+            'Niger': 'Niger',
+            'Mali': 'Mali',
+            'Mauritania': 'Mauritania',
+            'Algeria': 'Algeria',
+            'Morocco': 'Morocco',
+            'Tunisia': 'Tunisia',
+            'Libya': 'Libya',
+            'Egypt': 'Egypt',
+            'Sudan': 'Sudan',
+            'Ethiopia': 'Ethiopia',
+            'Eritrea': 'Eritrea',
+            'Djibouti': 'Djibouti',
+            'Somalia': 'Somalia',
+            'Kenya': 'Kenya',
+            'Uganda': 'Uganda',
+            'Rwanda': 'Rwanda',
+            'Burundi': 'Burundi',
+            'Malawi': 'Malawi',
+            'Zambia': 'Zambia',
+            'Zimbabwe': 'Zimbabwe',
+            'Botswana': 'Botswana',
+            'Namibia': 'Namibia',
+            'Lesotho': 'Lesotho',
+            'Swaziland': 'Eswatini',
+            'Eswatini': 'Eswatini',
+            'Madagascar': 'Madagascar',
+            'Mauritius': 'Mauritius',
+            'Seychelles': 'Seychelles',
+            'Comoros': 'Comoros',
+            'Maldives': 'Maldives',
+            'Sri Lanka': 'Sri Lanka',
+            'India': 'India',
+            'Pakistan': 'Pakistan',
+            'Bangladesh': 'Bangladesh',
+            'Nepal': 'Nepal',
+            'Bhutan': 'Bhutan',
+            'Myanmar': 'Myanmar',
+            'Thailand': 'Thailand',
+            'Laos': 'Laos',
+            'Vietnam': 'Vietnam',
+            'Cambodia': 'Cambodia',
+            'Malaysia': 'Malaysia',
+            'Singapore': 'Singapore',
+            'Indonesia': 'Indonesia',
+            'Philippines': 'Philippines',
+            'Brunei': 'Brunei',
+            'Papua New Guinea': 'Papua New Guinea',
+            'Australia': 'Australia',
+            'New Zealand': 'New Zealand',
+            'Fiji': 'Fiji',
+            'Solomon Islands': 'Solomon Islands',
+            'Vanuatu': 'Vanuatu',
+            'Samoa': 'Samoa',
+            'Tonga': 'Tonga',
+            'Kiribati': 'Kiribati',
+            'Tuvalu': 'Tuvalu',
+            'Nauru': 'Nauru',
+            'Palau': 'Palau',
+            'Marshall Islands': 'Marshall Islands',
+            'Micronesia': 'Micronesia',
+            'Japan': 'Japan',
+            'China': 'China',
+            'Mongolia': 'Mongolia',
+            'Kazakhstan': 'Kazakhstan',
+            'Uzbekistan': 'Uzbekistan',
+            'Turkmenistan': 'Turkmenistan',
+            'Kyrgyzstan': 'Kyrgyzstan',
+            'Tajikistan': 'Tajikistan',
+            'Afghanistan': 'Afghanistan',
+            'Iraq': 'Iraq',
+            'Syria': 'Syria',
+            'Lebanon': 'Lebanon',
+            'Jordan': 'Jordan',
+            'Israel': 'Israel',
+            'Palestine': 'Palestine',
+            'Saudi Arabia': 'Saudi Arabia',
+            'Yemen': 'Yemen',
+            'Oman': 'Oman',
+            'United Arab Emirates': 'United Arab Emirates',
+            'Qatar': 'Qatar',
+            'Bahrain': 'Bahrain',
+            'Kuwait': 'Kuwait',
+            'Turkey': 'Turkey',
+            'Georgia': 'Georgia',
+            'Armenia': 'Armenia',
+            'Azerbaijan': 'Azerbaijan',
+            'Cyprus': 'Cyprus',
+            'Greece': 'Greece',
+            'Albania': 'Albania',
+            'North Macedonia': 'North Macedonia',
+            'Kosovo': 'Kosovo',
+            'Montenegro': 'Montenegro',
+            'Bosnia and Herzegovina': 'Bosnia and Herzegovina',
+            'Croatia': 'Croatia',
+            'Slovenia': 'Slovenia',
+            'Serbia': 'Serbia',
+            'Hungary': 'Hungary',
+            'Romania': 'Romania',
+            'Bulgaria': 'Bulgaria',
+            'Moldova': 'Moldova',
+            'Ukraine': 'Ukraine',
+            'Belarus': 'Belarus',
+            'Lithuania': 'Lithuania',
+            'Latvia': 'Latvia',
+            'Estonia': 'Estonia',
+            'Finland': 'Finland',
+            'Sweden': 'Sweden',
+            'Norway': 'Norway',
+            'Denmark': 'Denmark',
+            'Iceland': 'Iceland',
+            'Ireland': 'Ireland',
+            'Portugal': 'Portugal',
+            'Spain': 'Spain',
+            'France': 'France',
+            'Italy': 'Italy',
+            'Switzerland': 'Switzerland',
+            'Austria': 'Austria',
+            'Germany': 'Germany',
+            'Netherlands': 'Netherlands',
+            'Belgium': 'Belgium',
+            'Luxembourg': 'Luxembourg',
+            'Poland': 'Poland',
+            'Canada': 'Canada',
+            'Mexico': 'Mexico',
+            'Guatemala': 'Guatemala',
+            'Belize': 'Belize',
+            'El Salvador': 'El Salvador',
+            'Honduras': 'Honduras',
+            'Nicaragua': 'Nicaragua',
+            'Costa Rica': 'Costa Rica',
+            'Panama': 'Panama',
+            'Cuba': 'Cuba',
+            'Jamaica': 'Jamaica',
+            'Haiti': 'Haiti',
+            'Dominican Republic': 'Dominican Republic',
+            'Puerto Rico': 'Puerto Rico',
+            'Trinidad and Tobago': 'Trinidad and Tobago',
+            'Barbados': 'Barbados',
+            'Saint Lucia': 'Saint Lucia',
+            'Saint Vincent and the Grenadines': 'Saint Vincent and the Grenadines',
+            'Grenada': 'Grenada',
+            'Antigua and Barbuda': 'Antigua and Barbuda',
+            'Saint Kitts and Nevis': 'Saint Kitts and Nevis',
+            'Dominica': 'Dominica',
+            'Brazil': 'Brazil',
+            'Argentina': 'Argentina',
+            'Chile': 'Chile',
+            'Uruguay': 'Uruguay',
+            'Paraguay': 'Paraguay',
+            'Peru': 'Peru',
+            'Ecuador': 'Ecuador',
+            'Colombia': 'Colombia',
+            'Guyana': 'Guyana',
+            'Suriname': 'Suriname',
+            'French Guiana': 'French Guiana'
+        };
+        
+        // Create map
+        async function createMap() {
+            const [world, electricity] = await Promise.all([
+                loadWorldMap(),
+                loadElectricityData()
+            ]);
+            
+            if (!world) {
+                document.getElementById('loading').innerHTML = 'Không thể tải bản đồ thế giới. Vui lòng kiểm tra kết nối internet.';
+                return;
+            }
+            
+            worldData = world;
+            electricityData = electricity;
+            
+            const width = 1000;
+            const height = 600;
+            
+            const svg = d3.select('#map')
+                .attr('width', width)
+                .attr('height', height);
+            
+            const projection = d3.geoNaturalEarth1()
+                .scale(140)
+                .translate([width / 2, height / 2]);
+            
+            const path = d3.geoPath().projection(projection);
+            
+            // Create tooltip
+            const tooltip = d3.select('#tooltip');
+            
+            // Draw countries
+            svg.selectAll('.country')
+                .data(world.features)
+                .enter()
+                .append('path')
+                .attr('class', 'country')
+                .attr('d', path)
+                .attr('fill', d => {
+                    const countryName = d.properties.NAME || d.properties.name;
+                    const mappedName = countryNameMap[countryName] || countryName;
+                    const data = electricityData[mappedName];
+                    
+                    if (data && data[currentYear] !== undefined) {
+                        return colorScale(data[currentYear]);
+                    }
+                    return '#e5e5e5';
+                })
+                .on('mouseover', function(event, d) {
+                    const countryName = d.properties.NAME || d.properties.name;
+                    const mappedName = countryNameMap[countryName] || countryName;
+                    const data = electricityData[mappedName];
+                    
+                    let tooltipContent = `<strong>${countryName}</strong><br/>`;
+                    
+                    if (data && data[currentYear] !== undefined) {
+                        tooltipContent += `Năm: ${currentYear}<br/>Tỷ lệ: ${data[currentYear].toFixed(1)}%`;
+                    } else {
+                        tooltipContent += `Năm: ${currentYear}<br/>Không có dữ liệu`;
+                    }
+                    
+                    tooltip
+                        .style('opacity', 1)
+                        .html(tooltipContent);
+                })
+                .on('mousemove', function(event) {
+                    tooltip
+                        .style('left', (event.pageX + 10) + 'px')
+                        .style('top', (event.pageY - 10) + 'px');
+                })
+                .on('mouseout', function() {
+                    tooltip.style('opacity', 0);
+                });
+            
+            // Hide loading and show map
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('map-container').style.display = 'block';
+        }
+        
+        // Update map colors based on current year
+        function updateMap() {
+            const svg = d3.select('#map');
+            
+            svg.selectAll('.country')
+                .attr('fill', d => {
+                    const countryName = d.properties.NAME || d.properties.name;
+                    const mappedName = countryNameMap[countryName] || countryName;
+                    const data = electricityData[mappedName];
+                    
+                    if (data && data[currentYear] !== undefined) {
+                        return colorScale(data[currentYear]);
+                    }
+                    return '#e5e5e5';
+                });
+        }
+        
+        // Initialize slider
+        function initializeSlider() {
+            const slider = document.getElementById('yearSlider');
+            const yearDisplay = document.getElementById('yearDisplay');
+            
+            slider.addEventListener('input', function() {
+                currentYear = parseInt(this.value);
+                yearDisplay.textContent = currentYear;
+                updateMap();
+            });
+        }
+        
+        // Animation functions
+        function toggleAnimation() {
+            const playButton = document.getElementById('playButton');
+            const slider = document.getElementById('yearSlider');
+            
+            if (isPlaying) {
+                clearInterval(animationInterval);
+                playButton.textContent = '▶ Phát';
+                playButton.disabled = false;
+                slider.disabled = false;
+                isPlaying = false;
+            } else {
+                playButton.textContent = '⏸ Tạm dừng';
+                slider.disabled = true;
+                isPlaying = true;
+                
+                animationInterval = setInterval(() => {
+                    currentYear++;
+                    if (currentYear > 2023) {
+                        currentYear = 1990;
+                    }
+                    
+                    slider.value = currentYear;
+                    document.getElementById('yearDisplay').textContent = currentYear;
+                    updateMap();
+                }, 500);
+            }
+        }
+        
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', function() {
+            createMap();
+            initializeSlider();
         });
-        renderMarkers('all');
-      });
-
-    function renderMarkers(selectedYear) {
-      allMarkers.forEach(m => map.removeLayer(m));
-      allMarkers = [];
-
-      const filtered = selectedYear === 'all' ? data : data.filter(d => Math.floor(d.year) == selectedYear);
-
-      filtered.forEach(d => {
-        if (!d.latitude || !d.longitude) return;
-        const marker = L.circleMarker([d.latitude, d.longitude], {
-          radius: 4,
-          fillColor: "#4da3ff",
-          color: "#1e3a8a",
-          weight: 1,
-          opacity: 0.8,
-          fillOpacity: 0.7
-        }).bindPopup(`
-          <b>${d.city}</b><br>
-          Country: ${d.country_name}<br>
-          Region: ${d.who_region}<br>
-          Year: ${d.year}
-        `);
-        marker.addTo(map);
-        allMarkers.push(marker);
-      });
-    }
-
-    document.getElementById('yearSelect').addEventListener('change', (e) => {
-      renderMarkers(e.target.value);
-    });
-  </script>
+    </script>
 </body>
 </html>
