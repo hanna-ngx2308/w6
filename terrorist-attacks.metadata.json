@@ -1,0 +1,45 @@
+{
+  "chart": {
+    "title": "Number of terrorist attacks",
+    "subtitle": "Number of [terrorist attacks](#dod:terrorism).",
+    "citation": "Global Terrorism Database (2022)",
+    "originalChartUrl": "https://ourworldindata.org/grapher/terrorist-attacks?v=1&csvType=full&useColumnShortNames=false",
+    "selection": [
+      "Somalia",
+      "Central America & Caribbean",
+      "Lebanon",
+      "El Salvador"
+    ]
+  },
+  "columns": {
+    "Terrorist attacks": {
+      "titleShort": "Attacks",
+      "titleLong": "Attacks",
+      "unit": "attacks",
+      "timespan": "1970-2021",
+      "type": "Integer",
+      "owidVariableId": 738650,
+      "shortName": "total_incident_counts",
+      "lastUpdated": "2023-07-20",
+      "citationShort": " – processed by Our World in Data",
+      "citationLong": " – processed by Our World in Data. “Attacks” [dataset]. Global Terrorism Database (2022) [original data].",
+      "fullMetadata": "https://api.ourworldindata.org/v1/indicators/738650.metadata.json"
+    },
+    "World regions according to OWID": {
+      "titleShort": "World regions according to OWID",
+      "titleLong": "World regions according to OWID",
+      "descriptionShort": "Regions defined by Our World in Data, which are used in OWID charts and maps.",
+      "unit": "",
+      "timespan": "2023-2023",
+      "type": "Continent",
+      "owidVariableId": 900801,
+      "shortName": "owid_region",
+      "lastUpdated": "2023-01-01",
+      "citationShort": "Our World in Data – processed by Our World in Data",
+      "citationLong": "Our World in Data – processed by Our World in Data. “World regions according to OWID” [dataset]. Our World in Data, “Regions” [original data].",
+      "fullMetadata": "https://api.ourworldindata.org/v1/indicators/900801.metadata.json"
+    }
+  },
+  "dateDownloaded": "2025-10-12",
+  "activeFilters": {}
+}
