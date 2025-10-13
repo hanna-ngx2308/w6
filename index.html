@@ -2,135 +2,179 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Terrorist Attacks Worldwide (1970–2021)</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Terrorist attacks by country (1970–2021)</title>
   <style>
-    body { margin: 0; font-family: "Inter", Arial, sans-serif; background: #fff; color: #222; }
-    h1 { font-size: 22px; text-align: center; margin: 14px 0 4px; }
-    .sub { text-align: center; color: #666; font-size: 13px; margin-bottom: 10px; }
-    #map { height: 600px; width: 100%; border-radius: 12px; }
-    .panel {
-      display: flex; justify-content: center; align-items: center;
-      gap: 16px; margin: 16px auto; padding: 8px;
-      font-size: 13px; color: #444;
-    }
-    input[type=range] { width: 400px; }
-    button {
-      border: 1px solid #ccc; background: #fff; cursor: pointer;
-      padding: 6px 10px; border-radius: 8px; font-size: 14px;
-    }
-    .legend {
-      margin-top: 10px;
-      display: flex; flex-direction: column; align-items: center;
-      font-size: 11px; color: #333;
-    }
-    .legend-bar {
-      height: 14px; width: 420px;
-      background: linear-gradient(90deg,#fff5eb,#fee6ce,#fdd0a2,#fdae6b,#fd8d3c,#f16938,#e6550d,#d7301f,#a50f15,#6b0d13);
-      border: 1px solid #ccc; border-radius: 4px;
-    }
-    .legend-ticks {
-      display: flex; justify-content: space-between; width: 420px;
-      margin-top: 4px; font-size: 11px; color: #444;
-    }
-    .tooltip {
-      position: absolute; background: #111; color: #fff;
-      padding: 6px 8px; border-radius: 6px; font-size: 12px;
-      pointer-events: none; opacity: 0; transition: opacity 0.2s;
-    }
+    :root { --bg:#ffffff; --fg:#222; --muted:#666; --border:#e6e6e6; }
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;}
+    .wrap{max-width:1200px;margin:20px auto 40px;padding:0 16px;}
+    h1{font-size:20px;font-weight:600;margin:0 0 10px;}
+    .meta{color:var(--muted);font-size:13px;margin-bottom:16px;}
+    .panel{background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+    .viz{width:100%;height:560px;position:relative;}
+    svg{width:100%;height:100%;display:block;}
+    .controls{display:flex;align-items:center;gap:16px;margin-top:14px;}
+    .btn{border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 12px;cursor:pointer;font-size:14px;}
+    .btn:active{transform:translateY(1px);}
+    .year-pill{border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 16px;min-width:72px;text-align:center;font-variant-numeric:tabular-nums;}
+    .grow{flex:1 1 auto;}
+    input[type="range"]{width:100%;-webkit-appearance:none;background:transparent;height:24px;}
+    input[type="range"]::-webkit-slider-runnable-track{height:6px;background:#e9e9e9;border-radius:999px;}
+    input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;margin-top:-7px;width:20px;height:20px;background:#bbb;border-radius:50%;border:1px solid #999;}
+    .legend-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:10px;user-select:none;}
+    .legend-block{display:flex;align-items:center;gap:6px;font-size:12px;color:#444;}
+    .legend-svg{width:640px;height:48px;}
+    .tooltip{position:absolute;pointer-events:none;padding:6px 8px;background:rgba(255,255,255,.95);border:1px solid var(--border);border-radius:8px;font-size:12px;color:#111;box-shadow:0 2px 8px rgba(0,0,0,.08);transform:translate(-50%,-120%);white-space:nowrap;display:none;}
+    .no-data-pattern rect{fill:#f4f4f4;}
+    .no-data-pattern path{stroke:#cfcfcf;stroke-width:2;}
+    .credit{margin-top:10px;font-size:12px;color:#777;}
   </style>
 </head>
 <body>
-  <h1>Number of terrorist attacks</h1>
-  <div class="sub">1970–2021 • Global Terrorism Database (Our World in Data)</div>
-  <div id="map"></div>
+  <div class="wrap">
+    <h1>Terrorist attacks by country</h1>
+    <div class="meta">Annual number of terrorist attacks, 1970–2021. Source: OWID (cleaned).</div>
 
-  <div class="panel">
-    <button id="play">▶</button>
-    <span>1970</span>
-    <input id="year" type="range" min="1970" max="2021" value="1970">
-    <span>2021</span>
-  </div>
+    <div class="panel">
+      <div class="viz" id="viz">
+        <svg id="svg" viewBox="0 0 1000 520" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="tooltip" id="tooltip"></div>
+      </div>
 
-  <div class="legend">
-    <div class="legend-bar"></div>
-    <div class="legend-ticks">
-      <span>0</span><span>1</span><span>3</span><span>10</span><span>30</span><span>100</span>
-      <span>300</span><span>1k</span><span>3k</span><span>10k</span>
+      <div class="legend-row">
+        <div class="legend-block">
+          <svg width="28" height="18">
+            <defs>
+              <pattern id="pattern-nodata" patternUnits="userSpaceOnUse" width="8" height="8" class="no-data-pattern">
+                <rect x="0" y="0" width="8" height="8"></rect>
+                <path d="M-2,2 l4,-4 M0,8 l8,-8 M6,10 l4,-4" />
+              </pattern>
+            </defs>
+            <rect x="0" y="0" width="28" height="18" fill="url(#pattern-nodata)"></rect>
+          </svg>
+          <span>No data</span>
+        </div>
+
+        <svg class="legend-svg" id="legendSvg"></svg>
+      </div>
+
+      <div class="controls">
+        <button class="btn" id="play">▶︎</button>
+        <div class="year-pill" id="yearLabel">1970</div>
+        <div class="grow"><input id="slider" type="range" min="1970" max="2021" step="1" value="1970" /></div>
+        <div class="year-pill">2021</div>
+      </div>
+
+      <div class="credit">Design inspired by Our World in Data. Hover a country to see details. Drag the slider or press Play.</div>
     </div>
   </div>
 
+  <!-- Nhúng dữ liệu JSON -->
+  <script id="attacks-data" type="application/json">
+    <!-- Dán nội dung JSON của bạn ở đây (terrorist-attacks-clean.json) -->
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+
   <script>
-    const BREAKS = [0,1,3,10,30,100,300,1000,3000,10000];
-    const COLORS = ['#fff5eb','#fee6ce','#fdd0a2','#fdae6b','#fd8d3c','#f16938','#e6550d','#d7301f','#a50f15','#6b0d13'];
-    const YEARS = {min:1970,max:2021};
+    const thresholds=[0,1,3,10,30,100,300,1000,3000,10000];
+    const colors=["#fff5e6","#ffedd5","#fed7aa","#fdba74","#fb923c","#f97316","#ef4444","#dc2626","#991b1b","#7f1d1d"];
 
-    const map = L.map('map').setView([20,10], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      {maxZoom:5,minZoom:2,opacity:0.25,attribution:'© OpenStreetMap contributors'}).addTo(map);
+    const svg=d3.select("#svg");
+    const g=svg.append("g");
+    const path=d3.geoPath(d3.geoNaturalEarth1().scale(170).translate([500,270]));
+    const tooltip=d3.select("#tooltip");
+    const yearLabel=d3.select("#yearLabel");
+    const slider=d3.select("#slider");
+    const playBtn=d3.select("#play");
 
-    let geoLayer, tooltip = d3.select("body").append("div").attr("class","tooltip");
-    let DATA = null;
-
-    function getColor(v) {
-      if (v==null || isNaN(v)) return '#ccc';
-      for (let i=BREAKS.length-1;i>=0;i--) if(v>=BREAKS[i]) return COLORS[i];
-      return COLORS[0];
-    }
-    function formatNumber(n){
-      if (n==null||isNaN(n)) return 'No data';
-      return n>=1e6? d3.format('.2s')(n): d3.format(',')(n);
-    }
-
-    function updateMap(year){
-      if (!geoLayer || !DATA) return;
-      geoLayer.eachLayer(layer=>{
-        const iso = layer.feature.properties.iso_a3;
-        const val = (DATA[year] && DATA[year][iso]) || null;
-        layer.setStyle({fillColor:getColor(val),fillOpacity:0.9,color:'#fff',weight:0.6});
+    // Gradient legend
+    function buildLegend(){
+      const W=640,H=48;
+      const svg=d3.select("#legendSvg").attr("viewBox",`0 0 ${W} ${H}`).attr("preserveAspectRatio","xMinYMid meet");
+      svg.selectAll("*").remove();
+      const minV=1,maxV=10000;
+      const log=v=>Math.log10(v);
+      const scalePos=v=>(log(v)-log(minV))/(log(maxV)-log(minV));
+      const defs=svg.append("defs");
+      const grad=defs.append("linearGradient").attr("id","gradLegend").attr("x1","0%").attr("x2","100%").attr("y1","0%").attr("y2","0%");
+      thresholds.slice(1).forEach((t,i)=>{
+        const pos=scalePos(Math.max(t,1))*100;
+        grad.append("stop").attr("offset",pos+"%").attr("stop-color",colors[i]);
+        if(i<colors.length-1)grad.append("stop").attr("offset",(pos+0.0001)+"%").attr("stop-color",colors[i+1]);
+      });
+      const barX=8,barY=24,barW=W-16,barH=14;
+      svg.append("rect").attr("x",barX).attr("y",barY).attr("width",barW).attr("height",barH).attr("fill","url(#gradLegend)").attr("stroke","#cfcfcf");
+      const tickVals=thresholds;
+      const xFor=v=>(v===0?barX:barX+scalePos(v)*barW);
+      tickVals.forEach(v=>{
+        const x=xFor(v);
+        svg.append("line").attr("x1",x).attr("x2",x).attr("y1",barY-8).attr("y2",barY).attr("stroke","#9a9a9a");
+        svg.append("text").attr("x",x).attr("y",barY-10).attr("text-anchor",v===0?"start":"middle").attr("font-size",12).attr("fill","#333").text(v.toLocaleString());
       });
     }
+    buildLegend();
 
-    Promise.all([
-      d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson"),
-      d3.json("terrorist-attacks-clean.json")
-    ]).then(([world, data])=>{
-      DATA = data;
-      geoLayer = L.geoJSON(world,{
-        style: f=>({fillColor:'#ccc',color:'#fff',weight:0.6,fillOpacity:0.9}),
-        onEachFeature:(f,layer)=>{
-          layer.on('mousemove',e=>{
-            const year=document.getElementById('year').value;
-            const iso=f.properties.iso_a3;
-            const val=(DATA[year]&&DATA[year][iso])||null;
-            tooltip.style("opacity",1)
-              .html(`<b>${f.properties.name}</b><br>${year}: ${formatNumber(val)} attacks`)
-              .style("left",(e.originalEvent.pageX+10)+"px")
-              .style("top",(e.originalEvent.pageY-20)+"px");
-          });
-          layer.on('mouseout',()=>tooltip.style("opacity",0));
-        }
-      }).addTo(map);
-      updateMap(1970);
-    });
+    // Dữ liệu (JSON nhúng)
+    const dataset=JSON.parse(document.getElementById("attacks-data").textContent||"[]");
+    const dataByYearCountry=new Map();
+    let minYear=1e9,maxYear=-1e9;
+    for(const row of dataset){
+      const y=row["Year"],c=row["Entity"],v=row["Terrorist attacks"];
+      if(typeof y!=="number"||!c)continue;
+      if(!dataByYearCountry.has(y))dataByYearCountry.set(y,new Map());
+      dataByYearCountry.get(y).set(c,(v===null?null:+v));
+      if(y<minYear)minYear=y;if(y>maxYear)maxYear=y;
+    }
 
-    document.getElementById('year').addEventListener('input',e=>updateMap(e.target.value));
+    const clampMin=Math.max(1970,minYear||1970);
+    const clampMax=Math.min(2021,maxYear||2021);
+    slider.attr("min",clampMin).attr("max",clampMax).attr("value",clampMin);
+    yearLabel.text(slider.node().value);
 
-    let playing=false,timer=null;
-    document.getElementById('play').addEventListener('click',()=>{
-      playing=!playing;
-      document.getElementById('play').innerText = playing ? '❚❚' : '▶';
-      if(playing){
-        let year=+document.getElementById('year').value;
-        timer=setInterval(()=>{
-          year++; if(year>YEARS.max) year=YEARS.min;
-          document.getElementById('year').value=year;
-          updateMap(year);
-        },700);
-      }else clearInterval(timer);
+    function colorFor(value){
+      if(value==null)return"url(#pattern-nodata)";
+      let i=0;while(i<thresholds.length-1&&value>=thresholds[i+1])i++;
+      return colors[i];
+    }
+
+    fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(r=>r.json()).then(world=>{
+      const countries=topojson.feature(world,world.objects.countries).features;
+      const getName=f=>(f.properties&&(f.properties.name||f.properties.NAME||f.properties.admin))||"";
+      g.append("path").attr("d",path(topojson.merge(world,world.objects.countries.geometries))).attr("fill","#f8f8f8").attr("stroke","#ddd");
+      const countryPaths=g.selectAll(".country").data(countries).enter().append("path")
+        .attr("class","country").attr("d",path).attr("stroke","#fff").attr("stroke-width",0.7)
+        .attr("fill","url(#pattern-nodata)")
+        .on("mousemove",function(event,d){
+          const name=getName(d);const y=+slider.node().value;
+          const v=(dataByYearCountry.get(y)||new Map()).get(name);
+          const txt=(v==null?"No data":v.toLocaleString());
+          const bbox=this.ownerSVGElement.getBoundingClientRect();
+          tooltip.style("display","block").style("left",(event.clientX-bbox.left)+"px").style("top",(event.clientY-bbox.top)+"px").html(`<strong>${name}</strong><br/>${txt} attacks in ${y}`);
+        })
+        .on("mouseleave",()=>tooltip.style("display","none"));
+
+      function render(year){
+        yearLabel.text(year);
+        const map=dataByYearCountry.get(+year)||new Map();
+        countryPaths.attr("fill",d=>{
+          const v=map.get(getName(d));
+          if(v==null)return"url(#pattern-nodata)";
+          return colorFor(v);
+        });
+      }
+      render(+slider.node().value);
+
+      slider.on("input",(e)=>render(+e.target.value));
+
+      let playing=false,timer=null;
+      const step=()=>{let y=+slider.node().value;y=(y>=clampMax)?clampMin:y+1;slider.node().value=y;render(y);};
+      const start=()=>{if(playing)return;playing=true;playBtn.text("❚❚");timer=setInterval(step,700);};
+      const stop =()=>{playing=false;playBtn.text("▶︎");if(timer)clearInterval(timer);};
+      playBtn.on("click",()=>playing?stop():start());
+      slider.on("mousedown",stop);
     });
   </script>
 </body>
