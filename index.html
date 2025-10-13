@@ -70,27 +70,13 @@
       width: 20px; height: 20px;
       background: #bbb; border-radius: 50%; border: 1px solid #999;
     }
-    .legend {
-      display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap;
-      font-size: 12px; color: #444;
-    }
-    .legend, .controls { user-select: none; }
-    .swatch-bar {
-      height: 14px; display: grid; grid-auto-flow: column; gap: 0; border: 1px solid #ddd; border-radius: 3px; overflow:hidden;
-      min-width: 320px;
-    }
-    .swatch-bar > div { height: 100%; }
-    .legend-labels { display: flex; justify-content: space-between; gap: 12px; width: 100%; max-width: 560px; }
-    .tooltip {
-      position: absolute; pointer-events: none; padding: 6px 8px; background: rgba(255,255,255,.95);
-      border: 1px solid var(--border); border-radius: 8px; font-size: 12px; color:#111; box-shadow: 0 2px 8px rgba(0,0,0,.08);
-      transform: translate(-50%, -120%);
-      white-space: nowrap;
-      display:none;
-    }
-    .no-data-pattern rect { fill: #f4f4f4; }
-    .no-data-pattern path { stroke: #cfcfcf; stroke-width: 2; }
-    .credit { margin-top: 10px; font-size: 12px; color:#777; }
+   .legend-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:10px;user-select:none;}
+    .legend-block{display:flex;align-items:center;gap:6px;font-size:12px;color:#444;}
+    .legend-svg{width:660px;height:58px;}
+    .tooltip{position:absolute;pointer-events:none;padding:6px 8px;background:rgba(255,255,255,.95);border:1px solid var(--border);border-radius:8px;font-size:12px;color:#111;box-shadow:0 2px 8px rgba(0,0,0,.08);transform:translate(-50%,-120%);white-space:nowrap;display:none;}
+    .no-data-pattern rect{fill:#f4f4f4;}
+    .no-data-pattern path{stroke:#cfcfcf;stroke-width:2;}
+    .credit{margin-top:10px;font-size:12px;color:#777;}
   </style>
 </head>
 <body>
