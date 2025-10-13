@@ -67,7 +67,7 @@
         const resp = await fetch('terrorist-attacks-clean.json');
         const raw = await resp.json();
         // Data shape: { Entity, Year, "Terrorist attacks" }
-        // Build: year -> { iso3 -> value }
+        // Build: year -> { countryName -> value }
         const byYear = new Map();
         let minYear = Infinity, maxYear = -Infinity;
         for (const row of raw) {
@@ -75,21 +75,20 @@
           const year = row["Year"];
           const value = row["Terrorist attacks"]; // number
           if (country == null || year == null) continue;
-          const iso3 = guessIso3(country);
-          if (!iso3) continue; // skip unknown names
           if (!byYear.has(year)) byYear.set(year, new Map());
-          byYear.get(year).set(iso3, value ?? 0);
+          byYear.get(year).set(country, value ?? 0);
           if (year < minYear) minYear = year;
           if (year > maxYear) maxYear = year;
         }
         return { byYear, minYear, maxYear };
       }
 
-      // Discrete bins like the screenshot
+      // Discrete bins like OWID
       const binEdges = [0, 1, 3, 10, 30, 100, 300, 1000, 3000, 10000];
+      const binLabels = ['0','1','3','10','30','100','1,000','3,000','10,000+'];
       const binColors = [
-        '#fae9d1', '#f6d6ad', '#f3c38e', '#f0ad72', '#ec8f5e',
-        '#e0634e', '#c53b2c', '#a4161a', '#7a0c10', '#5a070b'
+        '#f2e8cf', '#f5d7ae', '#f2c48d', '#f0ae73', '#eb8f5e',
+        '#de614d', '#c23a2b', '#a41419', '#7a0c10', '#5a070b'
       ];
 
       function valueToColor(v) {
@@ -118,28 +117,30 @@
       function yearFrame(year, seriesMap) {
         const locations = [];
         const z = [];
-        const colors = [];
-        for (const [iso3, val] of seriesMap.entries()) {
-          locations.push(iso3);
+        for (const [countryName, val] of seriesMap.entries()) {
+          locations.push(countryName);
           z.push(val ?? 0);
-          colors.push(valueToColor(val ?? 0));
         }
         return {
           name: String(year),
           data: [{
             type: 'choropleth',
-            locationmode: 'ISO-3',
+            locationmode: 'country names',
             locations,
             z,
-            zauto: false,
-            showscale: false,
-            hovertemplate: '%{location}: %{z}<extra></extra>',
-            marker: { line: { color: 'rgba(255,255,255,0.7)', width: 0.3 } },
             colorscale: binColors.map((c, i) => [i/(binColors.length-1), c]),
+            zmin: 0,
+            zmax: binEdges[binEdges.length - 1],
             autocolorscale: false,
-            // Use custom discrete colors by overriding via marker.colors
-            marker: { line: { color: 'rgba(255,255,255,0.7)', width: 0.3 } },
-            // Plotly choropleth doesn't accept per-cell color directly; we mimic via z + colorscale.
+            showscale: true,
+            colorbar: {
+              title: 'Số vụ',
+              tickmode: 'array',
+              tickvals: binEdges,
+              ticktext: ['0','1','3','10','30','100','300','1k','3k','10k+']
+            },
+            hovertemplate: '%{location}: %{z}<extra></extra>',
+            marker: { line: { color: 'rgba(255,255,255,0.7)', width: 0.3 } }
           }]
         };
       }
@@ -151,7 +152,9 @@
 
         // Build frames
         const frames = years.map(y => yearFrame(y, byYear.get(y)));
-        const firstFrame = frames[0];
+        // Default show 1988 if có trong dữ liệu
+        const defaultIndex = years.indexOf(1988) >= 0 ? years.indexOf(1988) : 0;
+        const firstFrame = frames[defaultIndex];
 
         const layout = {
           title: { text: 'Số vụ khủng bố theo quốc gia', x: 0.02, y: 0.98 },
@@ -198,6 +201,9 @@
         Plotly.newPlot('chart', data, layout, { responsive: true, displaylogo: false });
         if (frames.length > 0) {
           Plotly.addFrames('chart', frames);
+          if (defaultIndex !== 0) {
+            Plotly.animate('chart', [String(years[defaultIndex])], { mode: 'immediate', transition: { duration: 0 }, frame: { duration: 0, redraw: false } });
+          }
         }
       })();
     </script>
