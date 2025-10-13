@@ -1,265 +1,207 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Terrorist attacks by country (1970–2021)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Leaflet & d3 -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js"></script>
-  <style>
-    :root { --border:#e5e7eb; --ink:#111; }
-    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
-    #app{height:100%;display:flex;flex-direction:column;background:#fff}
-    #map{flex:1}
-    /* Control bar */
-    .bar{display:flex;align-items:center;justify-content:space-between;gap:14px;
-      padding:14px;border-top:1px solid var(--border);background:#fff;position:relative}
-    .left{display:flex;align-items:center;gap:12px}
-    .btn{width:44px;height:44px;border:1px solid var(--border);border-radius:12px;background:#fff;cursor:pointer;font-size:18px}
-    .badge{min-width:78px;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:12px;background:#fff;font-weight:700}
-    .slider-wrap{flex:1;display:flex;align-items:center;gap:16px}
-    input[type=range]{flex:1;height:6px;accent-color:#b91c1c}
-    /* Tooltip */
-    .tip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--border);
-      padding:8px 10px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.08);font-size:13px;
-      transform:translate(-50%,-110%);display:none;z-index:1000}
-    .tip .name{font-weight:700;margin-bottom:2px}
-    .tip .val{color:#b91c1c}
-    /* Legend */
-    .legend{position:absolute;left:50%;bottom:88px;transform:translateX(-50%);
-      background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 14px;
-      display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.06);font-size:13px}
-    .legend .sw{display:flex;gap:2px}
-    .legend .sw div{width:46px;height:14px;border:1px solid #ddd;border-radius:2px}
-    .legend .nodata{background:repeating-linear-gradient(135deg,#ddd 0 6px,#fff 6px 12px)}
-    .legend .labels{display:flex;gap:22px;color:var(--ink)}
-    .leaflet-container{background:#f8f9fb}
-    .leaflet-interactive{stroke:#fff;stroke-width:.7}
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bản đồ số vụ khủng bố theo năm</title>
+    <style>
+      html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+      #chart { width: 100%; height: 100vh; }
+      .note { position: fixed; right: 16px; bottom: 12px; font-size: 12px; color: #666; background: rgba(255,255,255,0.8); padding: 6px 8px; border-radius: 6px; }
+    </style>
+    <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+  </head>
+  <body>
+    <div id="chart"></div>
+    <div class="note">Nguồn: OWID (file `terrorist-attacks-clean.json`)</div>
+    <script>
+      // Helper: mapping country names to ISO-3 used by Plotly
+      // Minimal curated list; for names not found we'll try a lookup map below.
+      const nameToIso3 = {
+        "United States": "USA",
+        "United Kingdom": "GBR",
+        "Czechia": "CZE",
+        "Democratic Republic of Congo": "COD",
+        "Republic of the Congo": "COG",
+        "South Korea": "KOR",
+        "North Korea": "PRK",
+        "Russia": "RUS",
+        "Vietnam": "VNM",
+        "Laos": "LAO",
+        "Ivory Coast": "CIV",
+        "Côte d’Ivoire": "CIV",
+        "Cote d'Ivoire": "CIV",
+        "Eswatini": "SWZ",
+        "Swaziland": "SWZ",
+        "Syria": "SYR",
+        "Iran": "IRN",
+        "Venezuela": "VEN",
+        "Bolivia": "BOL",
+        "Tanzania": "TZA",
+        "Myanmar": "MMR",
+        "Moldova": "MDA",
+        "Cape Verde": "CPV",
+        "Timor": "TLS"
+      };
 
-    /* === Country Insight Card (click) === */
-    .card {
-      position:absolute; z-index:1200; width:520px; max-width:86vw;
-      background:#fff; border:1px solid var(--border); border-radius:14px;
-      box-shadow:0 10px 30px rgba(0,0,0,.15);
-    }
-    .card .hd { padding:16px 18px 10px; border-bottom:1px solid var(--border);}
-    .card .ct { padding:14px 18px 16px;}
-    .card .title {font-size:22px; font-weight:800;}
-    .card .subtitle {color:#666; margin-top:4px;}
-    .card .metric-label { color:#777; text-transform:lowercase; }
-    .card .metric-value { font-size:32px; font-weight:800; margin:2px 0 10px; }
-    .card .close { position:absolute; right:10px; top:10px; width:32px; height:32px;
-      border-radius:8px; border:1px solid var(--border); background:#fff; cursor:pointer; font-size:16px;}
-    .spark-ax { stroke:#ddd; stroke-width:1; }
-    .spark-line { fill:none; stroke:#e24a3b; stroke-width:2; }
-    .spark-marker { fill:#e24a3b; }
-    .muted { color:#777; font-size:12px; }
-  </style>
-</head>
-<body>
-<div id="app">
-  <div id="map"></div>
-
-  <!-- LEGEND -->
-  <div id="legend" class="legend" style="display:none"></div>
-
-  <!-- CONTROLS -->
-  <div class="bar">
-    <div class="left">
-      <button id="play" class="btn" title="Play/Pause">▶︎</button>
-      <div id="minYear" class="badge">1970</div>
-    </div>
-    <div class="slider-wrap">
-      <input id="slider" type="range" min="1970" max="2021" step="1" value="1970">
-    </div>
-    <div id="maxYear" class="badge">2021</div>
-  </div>
-</div>
-
-<div id="tip" class="tip"></div>
-
-<script>
-(async () => {
-  // Data sources
-  const DATA_URL = "https://ourworldindata.org/grapher/terrorist-attacks.csv";
-  const GEO_URL  = "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson";
-
-  // Map
-  const map = L.map("map", { zoomControl:false, worldCopyJump:true }).setView([20,10], 2);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", {
-    minZoom:2, maxZoom:5, attribution:""
-  }).addTo(map);
-
-  // Colors
-  const thresholds = [0,1,3,10,30,100,300,1000,3000,10000];
-  const colors = ["#fef9ed","#fde7cf","#fbd2ad","#f9bc93","#f59e7a","#ef7b64","#dd4a4a","#be1e2d","#8d0d12","#5c0005"];
-  const colorScale = d3.scaleThreshold().domain(thresholds.slice(1)).range(colors);
-
-  // Load
-  const [world, rows] = await Promise.all([ fetch(GEO_URL).then(r=>r.json()), d3.csv(DATA_URL) ]);
-  const metricKey = Object.keys(rows[0]).find(k => !["Entity","Code","Year"].includes(k)) || "value";
-
-  // Index data
-  const dataByYear = new Map();                // Map<year, Map<ISO3, value>>
-  const seriesByISO = new Map();               // Map<ISO3, Array<{year,value}>>
-  let minYear = Infinity, maxYear = -Infinity;
-
-  for (const r of rows) {
-    const iso = r.Code, y = +r.Year;
-    const v = r[metricKey]===""||r[metricKey]==null ? null : +r[metricKey];
-    if (!iso) continue;
-    if (!dataByYear.has(y)) dataByYear.set(y, new Map());
-    dataByYear.get(y).set(iso, v);
-
-    if (!seriesByISO.has(iso)) seriesByISO.set(iso, []);
-    seriesByISO.get(iso).push({year:y, value: (v==null?0:v)}); // null -> 0 cho sparkline
-    if (y<minYear) minYear=y;
-    if (y>maxYear) maxYear=y;
-  }
-  // sort each series by year
-  for (const [iso, arr] of seriesByISO) arr.sort((a,b)=>a.year-b.year);
-
-  // Controls
-  const slider = document.getElementById("slider");
-  const minBadge = document.getElementById("minYear");
-  const maxBadge = document.getElementById("maxYear");
-  const tip = document.getElementById("tip");
-
-  slider.min = Math.max(1970, minYear);
-  slider.max = Math.min(2021, maxYear);
-  minBadge.textContent = slider.min;
-  maxBadge.textContent = slider.max;
-
-  let layer, cardEl=null;
-
-  function colorFor(iso, year){
-    const v = (dataByYear.get(+year)||new Map()).get(iso);
-    if (v==null || isNaN(v)) return "#f0f0f0";
-    return colorScale(v);
-  }
-  function style(ft, year){
-    return { weight:.7, color:"#fff", fillOpacity:1, fillColor: colorFor(ft.properties.ISO_A3, year) };
-  }
-
-  function draw(year){
-    if (layer) layer.remove();
-    layer = L.geoJSON(world, {
-      style: ft => style(ft, year),
-      onEachFeature: (ft, l) => {
-        l.on({
-          mousemove: e => {
-            const iso = ft.properties.ISO_A3;
-            const name = ft.properties.ADMIN;
-            const v = (dataByYear.get(+year)||new Map()).get(iso);
-            tip.style.display="block";
-            tip.innerHTML = `<div class="name">${name}</div><div class="val">${(v==null||isNaN(v))?"No data":d3.format(",")(v)}</div>`;
-            const pt = map.latLngToContainerPoint(e.latlng);
-            tip.style.left = pt.x+"px"; tip.style.top = pt.y+"px";
-          },
-          mouseout: ()=> tip.style.display="none",
-          click: e => openCard(ft.properties.ADMIN, ft.properties.ISO_A3, +slider.value, e)
-        });
+      // Fallback rough ISO3 generator (very limited accuracy)
+      function guessIso3(name) {
+        if (nameToIso3[name]) return nameToIso3[name];
+        // Try using Intl.DisplayNames if available to normalize common variants
+        const replacements = {
+          "Democratic Republic of the Congo": "COD",
+          "Congo": "COG",
+          "Palestine": "PSE",
+          "Kosovo": "XKX",
+          "Micronesia": "FSM",
+          "North Macedonia": "MKD",
+          "Türkiye": "TUR",
+          "Burma": "MMR",
+          "Soviet Union": "RUS",
+        };
+        if (replacements[name]) return replacements[name];
+        return undefined;
       }
-    }).addTo(map);
-  }
 
-  // Legend
-  (function buildLegend(){
-    const el = document.getElementById("legend");
-    el.style.display="flex";
-    const root = d3.select(el).html("");
-    const sw = root.append("div").attr("class","sw");
-    sw.append("div").attr("class","nodata").attr("title","No data");
-    thresholds.forEach((t,i)=>{ if(i<colors.length) sw.append("div").style("background",colors[i]); });
-    root.append("div").attr("class","labels").html(`
-      <div><small>No data</small></div>
-      <div>0</div><div>1</div><div>3</div><div>10</div><div>30</div>
-      <div>100</div><div>300</div><div>1,000</div><div>3,000</div><div>10,000</div>
-    `);
-  })();
+      async function loadData() {
+        const resp = await fetch('terrorist-attacks-clean.json');
+        const raw = await resp.json();
+        // Data shape: { Entity, Year, "Terrorist attacks" }
+        // Build: year -> { iso3 -> value }
+        const byYear = new Map();
+        let minYear = Infinity, maxYear = -Infinity;
+        for (const row of raw) {
+          const country = row["Entity"];
+          const year = row["Year"];
+          const value = row["Terrorist attacks"]; // number
+          if (country == null || year == null) continue;
+          const iso3 = guessIso3(country);
+          if (!iso3) continue; // skip unknown names
+          if (!byYear.has(year)) byYear.set(year, new Map());
+          byYear.get(year).set(iso3, value ?? 0);
+          if (year < minYear) minYear = year;
+          if (year > maxYear) maxYear = year;
+        }
+        return { byYear, minYear, maxYear };
+      }
 
-  // Card renderer (country insight)
-  function openCard(name, iso, year, evt){
-    // destroy old
-    if (cardEl) cardEl.remove();
-    // position
-    const pt = map.latLngToContainerPoint(evt.latlng);
-    cardEl = document.createElement("div");
-    cardEl.className = "card";
-    cardEl.style.left = Math.min(Math.max(pt.x, 10), window.innerWidth-10) + "px";
-    cardEl.style.top  = Math.min(Math.max(pt.y, 10), window.innerHeight-10) + "px";
-    cardEl.style.transform = "translate(12px, -50%)"; // shift to the right of cursor
-    cardEl.innerHTML = `
-      <button class="close" title="Close">×</button>
-      <div class="hd">
-        <div class="title">${name}</div>
-        <div class="subtitle">${year}</div>
-      </div>
-      <div class="ct">
-        <div class="metric-label">attacks</div>
-        <div id="card-value" class="metric-value">–</div>
-        <div id="spark-wrap">
-          <svg id="spark" width="480" height="140" viewBox="0 0 480 140" preserveAspectRatio="xMinYMin"></svg>
-          <div class="muted" style="display:flex;justify-content:space-between;margin-top:4px">
-            <span>${slider.min}</span><span>${slider.max}</span>
-          </div>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(cardEl);
-    cardEl.querySelector(".close").onclick = ()=> cardEl.remove();
+      // Discrete bins like the screenshot
+      const binEdges = [0, 1, 3, 10, 30, 100, 300, 1000, 3000, 10000];
+      const binColors = [
+        '#fae9d1', '#f6d6ad', '#f3c38e', '#f0ad72', '#ec8f5e',
+        '#e0634e', '#c53b2c', '#a4161a', '#7a0c10', '#5a070b'
+      ];
 
-    // draw sparkline
-    const data = (seriesByISO.get(iso)||[]).filter(d=>d.year>=+slider.min && d.year<=+slider.max);
-    const svg = d3.select(cardEl).select("#spark");
-    svg.selectAll("*").remove();
-    const W = 480, H = 120, M = {t:8,r:8,b:22,l:28};
-    const g = svg.append("g").attr("transform", `translate(${M.l},${M.t})`);
-    const w = W - M.l - M.r, h = H - M.t - M.b;
+      function valueToColor(v) {
+        if (v === null || v === undefined) return '#e0e0e0';
+        for (let i = binEdges.length - 1; i >= 0; i--) {
+          if (v >= binEdges[i]) return binColors[i];
+        }
+        return binColors[0];
+      }
 
-    const x = d3.scaleLinear().domain([+slider.min, +slider.max]).range([0, w]);
-    const yMax = d3.max(data, d=>d.value) || 1;
-    const y = d3.scaleLinear().domain([0, yMax]).nice().range([h, 0]);
+      function legendTrace() {
+        // Fake scatter for discrete legend labels
+        const labels = ['0','1','3','10','30','100','300','1,000','3,000','10,000+'];
+        return {
+          x: new Array(labels.length).fill(0),
+          y: new Array(labels.length).fill(0),
+          mode: 'markers',
+          marker: { size: 0 },
+          showlegend: true,
+          name: 'Chú giải (mốc)',
+          hoverinfo: 'skip',
+          legendgroup: 'bins'
+        };
+      }
 
-    // axes light lines
-    g.append("line").attr("class","spark-ax").attr("x1",0).attr("x2",w).attr("y1",y(0)).attr("y2",y(0));
-    g.append("line").attr("class","spark-ax").attr("x1",x(year)).attr("x2",x(year)).attr("y1",0).attr("y2",h);
+      function yearFrame(year, seriesMap) {
+        const locations = [];
+        const z = [];
+        const colors = [];
+        for (const [iso3, val] of seriesMap.entries()) {
+          locations.push(iso3);
+          z.push(val ?? 0);
+          colors.push(valueToColor(val ?? 0));
+        }
+        return {
+          name: String(year),
+          data: [{
+            type: 'choropleth',
+            locationmode: 'ISO-3',
+            locations,
+            z,
+            zauto: false,
+            showscale: false,
+            hovertemplate: '%{location}: %{z}<extra></extra>',
+            marker: { line: { color: 'rgba(255,255,255,0.7)', width: 0.3 } },
+            colorscale: binColors.map((c, i) => [i/(binColors.length-1), c]),
+            autocolorscale: false,
+            // Use custom discrete colors by overriding via marker.colors
+            marker: { line: { color: 'rgba(255,255,255,0.7)', width: 0.3 } },
+            // Plotly choropleth doesn't accept per-cell color directly; we mimic via z + colorscale.
+          }]
+        };
+      }
 
-    // line
-    const line = d3.line().x(d=>x(d.year)).y(d=>y(d.value));
-    g.append("path").attr("class","spark-line").attr("d", line(data));
+      (async function init() {
+        const { byYear, minYear, maxYear } = await loadData();
+        const years = [];
+        for (let y = minYear; y <= maxYear; y++) if (byYear.has(y)) years.push(y);
 
-    // current year marker
-    const cur = data.find(d=>d.year===year);
-    if (cur){
-      g.append("circle").attr("class","spark-marker").attr("r",4).attr("cx",x(cur.year)).attr("cy",y(cur.value));
-      document.getElementById("card-value").textContent = d3.format(",")(cur.value);
-    } else {
-      document.getElementById("card-value").textContent = "0";
-    }
+        // Build frames
+        const frames = years.map(y => yearFrame(y, byYear.get(y)));
+        const firstFrame = frames[0];
 
-    // max label at right
-    g.append("text").attr("x", w).attr("y", -2).attr("text-anchor","end")
-      .attr("fill","#666").attr("font-size",12).text(d3.format(",")(yMax));
-  }
+        const layout = {
+          title: { text: 'Số vụ khủng bố theo quốc gia', x: 0.02, y: 0.98 },
+          geo: {
+            projection: { type: 'natural earth' },
+            showframe: false,
+            showcountries: true,
+            countrycolor: 'rgba(0,0,0,0.15)'
+          },
+          margin: { l: 0, r: 0, t: 40, b: 40 },
+          updatemenus: [{
+            type: 'buttons',
+            direction: 'left',
+            x: 0.02,
+            y: 0.03,
+            showactive: false,
+            buttons: [
+              {
+                label: '▶',
+                method: 'animate',
+                args: [null, { fromcurrent: true, frame: { duration: 400, redraw: false }, transition: { duration: 0 }, mode: 'immediate' }]
+              },
+              {
+                label: '❚❚',
+                method: 'animate',
+                args: [[null], { mode: 'immediate', frame: { duration: 0, redraw: false }, transition: { duration: 0 } }]
+              }
+            ]
+          }],
+          sliders: [{
+            x: 0.1, len: 0.8, y: 0.02,
+            pad: { t: 25, b: 0 },
+            currentvalue: { visible: true, prefix: '', xanchor: 'right', offset: 10 },
+            steps: years.map(y => ({
+              label: String(y),
+              method: 'animate',
+              args: [[String(y)], { mode: 'immediate', transition: { duration: 0 }, frame: { duration: 0, redraw: false } }]
+            }))
+          }]
+        };
 
-  // Slider + Play
-  function setYear(y){ slider.value=y; draw(+y); if (cardEl) { cardEl.querySelector(".subtitle").textContent = y; /* re-draw spark axis */ const iso = cardEl.__iso; } }
-  slider.addEventListener("input", e => setYear(+e.target.value));
-  let playing=false, timer=null;
-  document.getElementById("play").addEventListener("click", ()=>{
-    playing = !playing;
-    document.getElementById("play").textContent = playing ? "⏸︎" : "▶︎";
-    if (playing){
-      timer = setInterval(()=>{ let y=+slider.value+1; if (y>+slider.max) y=+slider.min; setYear(y); }, 900);
-    } else clearInterval(timer);
-  });
+        const data = firstFrame ? firstFrame.data : [];
 
-  // initial
-  draw(1988);
-})();
-</script>
-</body>
-</html>
+        Plotly.newPlot('chart', data, layout, { responsive: true, displaylogo: false });
+        if (frames.length > 0) {
+          Plotly.addFrames('chart', frames);
+        }
+      })();
+    </script>
+  </body>
+  </html>
+
+
