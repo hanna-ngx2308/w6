@@ -58,7 +58,6 @@
     input[type="range"] {
       width: 100%;
       -webkit-appearance: none;
-      appearance: none;
       background: transparent;
       height: 24px;
     }
@@ -72,25 +71,16 @@
       background: #bbb; border-radius: 50%; border: 1px solid #999;
     }
     .legend {
-      display: flex; flex-direction: column; gap: 8px; margin-top: 12px; align-items: center;
+      display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap;
       font-size: 12px; color: #444;
     }
     .legend, .controls { user-select: none; }
-    .legend-top {
-      display: flex; align-items: center; gap: 10px;
-    }
     .swatch-bar {
       height: 14px; display: grid; grid-auto-flow: column; gap: 0; border: 1px solid #ddd; border-radius: 3px; overflow:hidden;
       min-width: 320px;
     }
     .swatch-bar > div { height: 100%; }
-    .legend-labels { 
-      display: flex; justify-content: space-between; gap: 12px; width: 320px; 
-      font-size: 11px; font-weight: 500; text-align: center;
-    }
-    .legend-labels > div {
-      width: 32px; text-align: center;
-    }
+    .legend-labels { display: flex; justify-content: space-between; gap: 12px; width: 100%; max-width: 560px; }
     .tooltip {
       position: absolute; pointer-events: none; padding: 6px 8px; background: rgba(255,255,255,.95);
       border: 1px solid var(--border); border-radius: 8px; font-size: 12px; color:#111; box-shadow: 0 2px 8px rgba(0,0,0,.08);
@@ -115,22 +105,20 @@
       </div>
 
       <div class="legend" id="legend">
-        <div class="legend-top">
-          <div style="display:flex; align-items:center; gap:6px;">
-            <svg width="24" height="14">
-              <defs>
-                <pattern id="pattern-nodata" patternUnits="userSpaceOnUse" width="8" height="8" class="no-data-pattern">
-                  <rect x="0" y="0" width="8" height="8"></rect>
-                  <path d="M-2,2 l4,-4 M0,8 l8,-8 M6,10 l4,-4" />
-                </pattern>
-              </defs>
-              <rect x="0" y="0" width="24" height="14" fill="url(#pattern-nodata)"></rect>
-            </svg>
-            <span>No data</span>
-          </div>
-
-          <div class="swatch-bar" id="swatches"></div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <svg width="24" height="14">
+            <defs>
+              <pattern id="pattern-nodata" patternUnits="userSpaceOnUse" width="8" height="8" class="no-data-pattern">
+                <rect x="0" y="0" width="8" height="8"></rect>
+                <path d="M-2,2 l4,-4 M0,8 l8,-8 M6,10 l4,-4" />
+              </pattern>
+            </defs>
+            <rect x="0" y="0" width="24" height="14" fill="url(#pattern-nodata)"></rect>
+          </svg>
+          <span>No data</span>
         </div>
+
+        <div class="swatch-bar" id="swatches"></div>
       </div>
 
       <div class="controls">
