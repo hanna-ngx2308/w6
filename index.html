@@ -76,11 +76,12 @@
     }
     .legend, .controls { user-select: none; }
     .swatch-bar {
-      height: 14px; display: grid; grid-auto-flow: column; gap: 0; border: 1px solid #ddd; border-radius: 3px; overflow:hidden;
-      min-width: 320px;
+      height: 14px; display: grid; justify-content: space-between; grid-auto-flow: column; gap: 0; border: 1px solid #ddd; border-radius: 3px; overflow:hidden;
+      min-width: 320px; 
+	  max-width: 560px;
     }
     .swatch-bar > div { height: 100%; }
-    .legend-labels { display: flex; justify-content: space-between; gap: 12px; width: 100%; max-width: 560px; }
+    .legend-labels { display: flex; justify-content: space-between; gap: 12px; width: 100%; max-width: 560px; min-width: 320px;}
     .tooltip {
       position: absolute; pointer-events: none; padding: 6px 8px; background: rgba(255,255,255,.95);
       border: 1px solid var(--border); border-radius: 8px; font-size: 12px; color:#111; box-shadow: 0 2px 8px rgba(0,0,0,.08);
@@ -104,7 +105,8 @@
         <div class="tooltip" id="tooltip"></div>
       </div>
 
-      <div class="legend" id="legend">
+      <span>No data</span>
+      <div class="swatch-bar" id="swatches">
         <div style="display:flex; align-items:center; gap:6px;">
           <svg width="24" height="14">
             <defs>
@@ -115,10 +117,9 @@
             </defs>
             <rect x="0" y="0" width="24" height="14" fill="url(#pattern-nodata)"></rect>
           </svg>
-          <span>No data</span>
         </div>
-
-        <div class="swatch-bar" id="swatches"></div>
+	  </div>
+      <div class="legend" id="legend">
       </div>
 
       <div class="controls">
