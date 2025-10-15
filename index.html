@@ -78,7 +78,7 @@
     .swatch-bar {
       height: 14px; display: grid; justify-content: space-between; grid-auto-flow: column; gap: 0; border: 1px solid #ddd; border-radius: 3px; overflow:hidden;
       min-width: 320px; 
-	  max-width: 560px;
+	  max-width: 640px;
     }
     .swatch-bar > div { height: 100%; }
     .legend-labels { display: flex; justify-content: space-between; gap: 12px; width: 100%; max-width: 560px; min-width: 320px;}
@@ -105,10 +105,9 @@
         <div class="tooltip" id="tooltip"></div>
       </div>
 
-      <span>No data</span>
       <div class="swatch-bar" id="swatches">
         <div style="display:flex; align-items:center; gap:6px;">
-          <svg width="24" height="14">
+          <svg width="64" height="14">
             <defs>
               <pattern id="pattern-nodata" patternUnits="userSpaceOnUse" width="8" height="8" class="no-data-pattern">
                 <rect x="0" y="0" width="8" height="8"></rect>
@@ -120,6 +119,8 @@
         </div>
 	  </div>
       <div class="legend" id="legend">
+      <span>No data     </span>
+      <span>   </span>
       </div>
 
       <div class="controls">
@@ -131,7 +132,7 @@
         <div class="year-pill">2021</div>
       </div>
 
-      <div class="credit">Design inspired by Our World in Data. Hover a country to see details. Drag the slider or press Play.</div>
+      
     </div>
   </div>
 
@@ -64894,7 +64895,7 @@
 
     const swatches = d3.select("#swatches");
     thresholds.slice(0, -1).forEach((t, i) => {
-      swatches.append("div").style("background", colors[i]).style("width", "32px");
+      swatches.append("div").style("background", colors[i]).style("width", "64px");
     });
 
     // Legend labels
